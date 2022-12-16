@@ -1,0 +1,103 @@
+<script>
+    var worldObjects = []
+    var jsonWorlds = []
+    var lootedTimes = []
+    var getJSON = function (url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = function () {
+            var status = xhr.status;
+            if (status === 200) {
+                callback(null, xhr.response);
+            } else {
+                callback(status, xhr.response);
+            }
+        };
+        xhr.send();
+    };
+
+    function worldFilter(element, index, array) {
+        let comparison = element.uptimeMinutes
+        lootedTimes.forEach(function (lootedTime) {
+            if (element.world == lootedTime.world) {
+                if (element.uptimeMinutes > lootedTime.minutesUnlooted) {
+                    comparison = minutesUnlooted
+                }
+            }
+        })
+        if (comparison < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
+            return false
+        }
+        element.sinceLooted = comparison
+        return true;
+    }
+
+    function checkWorlds() {
+        document.getElementById("wlOutput").value.split('\n').forEach(function (line) {
+            if (!line.startsWith("WC")) {
+                return
+            }
+            let worldNum = parseInt(line.substring(2, 4).trim(), 10)
+            const regex = new RegExp('\\d h \\d?\\d m')
+            let hour
+            let minute
+            if (regex.test(line)) {
+                hour = line.split(/\s+/)[1].split(" ")[0]
+                minute = line.split(/\s+/)[3]
+            } else {
+                hour = 0
+                minute = line.split(/\s+/)[1].split(" ")[0]
+            }
+            minutesUnlooted = parseInt(hour * 60, 10) + parseInt(minute, 10)
+            lootedTimes.push({
+                world: worldNum,
+                minutesUnlooted: minutesUnlooted
+            })
+            if (minutesUnlooted < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
+                return;
+            }
+            worldObjects.push({
+                world: worldNum,
+                minutesUnlooted: minutesUnlooted
+            })
+        });
+        getJSON('https://athena.wynntils.com/cache/get/serverList',
+            function (err, data) {
+                if (err !== null) {
+                    alert('Something went wrong: ' + err);
+                } else {
+                    for (let x in data.servers) {
+                        if (x.includes("YT")) {
+                            continue
+                        }
+                        // console.log(x+ " : " + new Date(Date.now()-data.servers[x].firstSeen).toISOString().slice(11, 19));
+                        jsonWorlds.push({
+                            world: parseInt(x.replace("WC", ""), 10),
+                            uptimeMinutes: parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[0], 10) * 60 + parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[1], 10)
+                        })
+                    }
+                    jsonWorlds = jsonWorlds.filter(worldFilter)
+                    jsonWorlds.sort(function (l, r) {
+                        return  r.sinceLooted-l.sinceLooted;
+                    });
+                    console.log(jsonWorlds)
+                    let output = "Potential worlds: \n"
+                    jsonWorlds.forEach(function (world) {
+                        output += "WC" + world.world + " : time since looted: " + world.sinceLooted + " minutes\n"
+                    })
+                    alert(output)
+                }
+            }
+        );
+    }
+</script>
+<body>
+<textarea id="wlOutput" name="wlOutput" rows="30" cols="102" placeholder="enter .wl output here"></textarea>
+<br>
+<input size="105" type="text" id="minutesUnlooted" name="minutesUnlooted"
+       min="10" max="1000"
+       placeholder="Minutes unlooted eg: disqualify any worlds that are less than this old or have been looted more than this recently">
+<br>
+<button onclick="checkWorlds()">Find worlds</button>
+</body>
