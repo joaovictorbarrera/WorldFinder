@@ -22,7 +22,7 @@
         lootedTimes.forEach(function (lootedTime) {
             if (element.world == lootedTime.world) {
                 if (element.uptimeMinutes > lootedTime.minutesUnlooted) {
-                    comparison = minutesUnlooted
+                    comparison = lootedTime.minutesUnlooted
                 }
             }
         })
