@@ -34,6 +34,9 @@
     }
 
     function checkWorlds() {
+        worldObjects = []
+        jsonWorlds = []
+        lootedTimes = []
         document.getElementById("wlOutput").value.split('\n').forEach(function (line) {
             if (!line.startsWith("WC")) {
                 return
@@ -79,25 +82,29 @@
                     }
                     jsonWorlds = jsonWorlds.filter(worldFilter)
                     jsonWorlds.sort(function (l, r) {
-                        return  r.sinceLooted-l.sinceLooted;
+                        return r.sinceLooted - l.sinceLooted;
                     });
                     console.log(jsonWorlds)
                     let output = "Potential worlds: \n"
                     jsonWorlds.forEach(function (world) {
                         output += "WC" + world.world + " : time since looted: " + world.sinceLooted + " minutes\n"
                     })
-                    alert(output)
+
+                    document.getElementById("result").innerText = output
                 }
             }
         );
     }
 </script>
+
 <body>
-<textarea id="wlOutput" name="wlOutput" rows="30" cols="102" placeholder="enter .wl output here"></textarea>
-<br>
-<input size="105" type="text" id="minutesUnlooted" name="minutesUnlooted"
-       min="10" max="1000"
-       placeholder="Minutes unlooted eg: disqualify any worlds that are less than this old or have been looted more than this recently">
-<br>
-<button onclick="checkWorlds()">Find worlds</button>
+    <textarea id="wlOutput" name="wlOutput" rows="30" cols="102" placeholder="enter .wl output here"></textarea>
+    <br>
+    <input size="105" type="text" id="minutesUnlooted" name="minutesUnlooted" min="10" max="1000"
+        placeholder="Minutes unlooted eg: disqualify any worlds that are less than this old or have been looted more than this recently">
+    <br>
+    <button onclick="checkWorlds()">Find worlds</button>
+    <div id="result">
+
+    </div>
 </body>
