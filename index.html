@@ -33,6 +33,12 @@
         return true;
     }
 
+    function time_from_minutes(minutes) {
+        if (minutes < 60) return `${minutes} m`
+
+        return `${Math.floor(minutes / 60)} h ${minutes % 60} m`
+    }
+
     function checkWorlds() {
         worldObjects = []
         jsonWorlds = []
@@ -87,7 +93,7 @@
                     console.log(jsonWorlds)
                     let output = "Potential worlds: \n"
                     jsonWorlds.forEach(function (world) {
-                        output += "WC" + world.world + " : time since looted: " + world.sinceLooted + " minutes\n"
+                        output += `WC${world.world} (Uptime: ${time_from_minutes(world.uptimeMinutes)}) : time since looted: ${time_from_minutes(world.sinceLooted)}\n`
                     })
 
                     document.getElementById("result").innerText = output
