@@ -118,7 +118,9 @@
             worldObjects = []
             jsonWorlds = []
             lootedTimes = []
-            document.getElementById("wlOutput").value.split('\n').forEach(function (line) {
+            const dotWLFieldText = document.getElementById("wlOutput").value
+            if (!dotWLFieldText || dotWLFieldText === "") return
+            dotWLFieldText.split('\n').forEach(function (line) {
                 if (!line.startsWith("WC")) {
                     return
                 }
@@ -146,6 +148,7 @@
                     minutesUnlooted: minutesUnlooted
                 })
             });
+            if (!lootedTimes || lootedTimes.length === 0) return
             getJSON('https://athena.wynntils.com/cache/get/serverList',
                 function (err, data) {
                     if (err !== null) {
