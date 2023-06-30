@@ -1,144 +1,36 @@
-<script>
-    var worldObjects = []
-    var jsonWorlds = []
-    var lootedTimes = []
-    var getJSON = function (url, callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'json';
-        xhr.onload = function () {
-            var status = xhr.status;
-            if (status === 200) {
-                callback(null, xhr.response);
-            } else {
-                callback(status, xhr.response);
-            }
-        };
-        xhr.send();
-    };
+<!DOCTYPE html>
+<html lang="en">
 
-    function worldFilter(element, index, array) {
-        let comparison = element.uptimeMinutes
-        lootedTimes.forEach(function (lootedTime) {
-            if (element.world == lootedTime.world) {
-                if (element.uptimeMinutes > lootedTime.minutesUnlooted) {
-                    comparison = lootedTime.minutesUnlooted
-                }
-            }
-        })
-        if (comparison < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
-            return false
-        }
-        element.sinceLooted = comparison
-        return true;
-    }
-
-    function time_from_minutes(minutes) {
-        if (minutes < 60) return `${minutes} m`
-
-        return `${Math.floor(minutes / 60)} h ${minutes % 60} m`
-    }
-
-    function checkWorlds() {
-        worldObjects = []
-        jsonWorlds = []
-        lootedTimes = []
-        document.getElementById("wlOutput").value.split('\n').forEach(function (line) {
-            if (!line.startsWith("WC")) {
-                return
-            }
-            let worldNum = parseInt(line.substring(2, 4).trim(), 10)
-            const regex = new RegExp('\\d h \\d?\\d m')
-            let hour
-            let minute
-            if (regex.test(line)) {
-                hour = line.split(/\s+/)[1].split(" ")[0]
-                minute = line.split(/\s+/)[3]
-            } else {
-                hour = 0
-                minute = line.split(/\s+/)[1].split(" ")[0]
-            }
-            minutesUnlooted = parseInt(hour * 60, 10) + parseInt(minute, 10)
-            lootedTimes.push({
-                world: worldNum,
-                minutesUnlooted: minutesUnlooted
-            })
-            if (minutesUnlooted < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
-                return;
-            }
-            worldObjects.push({
-                world: worldNum,
-                minutesUnlooted: minutesUnlooted
-            })
-        });
-        getJSON('https://athena.wynntils.com/cache/get/serverList',
-            function (err, data) {
-                if (err !== null) {
-                    alert('Something went wrong: ' + err);
-                } else {
-                    for (let x in data.servers) {
-                        if (x.includes("YT")) {
-                            continue
-                        }
-                        // console.log(x+ " : " + new Date(Date.now()-data.servers[x].firstSeen).toISOString().slice(11, 19));
-                        jsonWorlds.push({
-                            world: parseInt(x.replace("WC", ""), 10),
-                            uptimeMinutes: parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[0], 10) * 60 + parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[1], 10)
-                        })
-                    }
-                    jsonWorlds = jsonWorlds.filter(worldFilter)
-                    jsonWorlds.sort(function (l, r) {
-                        return r.sinceLooted - l.sinceLooted;
-                    });
-                    console.log(jsonWorlds)
-                    let output = "Potential worlds: \n"
-                    jsonWorlds.forEach(function (world) {
-                        output += `WC${world.world} (Uptime: ${time_from_minutes(world.uptimeMinutes)}) : time since looted: ${time_from_minutes(world.sinceLooted)}\n`
-                    })
-
-                    document.getElementById("result").innerText = output
-                }
-            }
-        );
-    }
-
-    async function listUptime() {
-        const uptimeList = []
-
-        try {
-            const res = await fetch('https://athena.wynntils.com/cache/get/serverList')
-            const data = await res.json()
-
-            for (let server in data.servers) {
-                if (server.includes("YT")) {
-                    continue
-                }
-
-                uptimeList.push({
-                    world: parseInt(server.replace("WC", ""), 10),
-                    uptimeMinutes: parseInt(new Date(Date.now() - data.servers[server].firstSeen).toISOString().slice(11, 19).split(":")[0], 10) * 60 + parseInt(new Date(Date.now() - data.servers[server].firstSeen).toISOString().slice(11, 19).split(":")[1], 10)
-                })
-            }
-
-            uptimeList.sort((a, b) => b.uptimeMinutes - a.uptimeMinutes)
-
-            let output = ''
-            uptimeList.forEach(world => {
-                const time = time_from_minutes(world.uptimeMinutes)
-                output += `WC${world.world} Uptime: <span style="color: ${world.uptimeMinutes > 420 || world.uptimeMinutes < 120 ? "red" : "green"}">${time}</span><br>`
-            })
-
-            document.getElementById("result").innerHTML = output
-
-        } catch (err) {
-            alert('Something went wrong: ' + err)
-            console.log(err)
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Finder</title>
+    <style>
+        :root {
+            --theme-background: #111;
+            --theme-color: lightgray;
         }
 
-    }
-</script>
+        * {
+            color: var(--theme-color);
+            background-color: var(--theme-background);
+        }
+
+        button {
+            border: 1px solid var(--theme-color);
+        }
+    </style>
+</head>
 
 <body>
+    <label>
+        Theme:
+        <select id="theme-selector">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="black">Black</option>
+        </select>
+    </label><br>
     <textarea id="wlOutput" name="wlOutput" rows="30" cols="102" placeholder="enter .wl output here"></textarea>
     <br>
     <input size="105" type="text" id="minutesUnlooted" name="minutesUnlooted" min="10" max="1000"
@@ -149,4 +41,177 @@
     <div id="result">
 
     </div>
+
+    <script defer>
+        const themeSelector = document.getElementById("theme-selector")
+        const pastTheme = localStorage.getItem("wf-theme")
+
+        if (pastTheme) {
+            changeTheme(pastTheme)
+            themeSelector.value = pastTheme
+        }
+
+        themeSelector.addEventListener("change", e => {
+            const theme = e.target.value
+            changeTheme(theme)
+            localStorage.setItem("wf-theme", theme)
+        })
+
+        function changeTheme(theme) {
+            switch (theme) {
+                case "dark":
+                    document.documentElement.style.setProperty("--theme-background", "#111")
+                    document.documentElement.style.setProperty("--theme-color", "lightgray")
+                    break;
+                case "light":
+                    document.documentElement.style.setProperty("--theme-background", "white")
+                    document.documentElement.style.setProperty("--theme-color", "black")
+                    break;
+                case "black":
+                    document.documentElement.style.setProperty("--theme-background", "black")
+                    document.documentElement.style.setProperty("--theme-color", "white")
+                    break;
+            }
+        }
+
+        var worldObjects = []
+        var jsonWorlds = []
+        var lootedTimes = []
+        var getJSON = function (url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'json';
+            xhr.onload = function () {
+                var status = xhr.status;
+                if (status === 200) {
+                    callback(null, xhr.response);
+                } else {
+                    callback(status, xhr.response);
+                }
+            };
+            xhr.send();
+        };
+
+        function worldFilter(element, index, array) {
+            let comparison = element.uptimeMinutes
+            lootedTimes.forEach(function (lootedTime) {
+                if (element.world == lootedTime.world) {
+                    if (element.uptimeMinutes > lootedTime.minutesUnlooted) {
+                        comparison = lootedTime.minutesUnlooted
+                    }
+                }
+            })
+            if (comparison < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
+                return false
+            }
+            element.sinceLooted = comparison
+            return true;
+        }
+
+        function time_from_minutes(minutes) {
+            if (minutes < 60) return `${minutes} m`
+
+            return `${Math.floor(minutes / 60)} h ${minutes % 60} m`
+        }
+
+        function checkWorlds() {
+            worldObjects = []
+            jsonWorlds = []
+            lootedTimes = []
+            document.getElementById("wlOutput").value.split('\n').forEach(function (line) {
+                if (!line.startsWith("WC")) {
+                    return
+                }
+                let worldNum = parseInt(line.substring(2, 4).trim(), 10)
+                const regex = new RegExp('\\d h \\d?\\d m')
+                let hour
+                let minute
+                if (regex.test(line)) {
+                    hour = line.split(/\s+/)[1].split(" ")[0]
+                    minute = line.split(/\s+/)[3]
+                } else {
+                    hour = 0
+                    minute = line.split(/\s+/)[1].split(" ")[0]
+                }
+                minutesUnlooted = parseInt(hour * 60, 10) + parseInt(minute, 10)
+                lootedTimes.push({
+                    world: worldNum,
+                    minutesUnlooted: minutesUnlooted
+                })
+                if (minutesUnlooted < parseInt(document.getElementById("minutesUnlooted").value, 10)) {
+                    return;
+                }
+                worldObjects.push({
+                    world: worldNum,
+                    minutesUnlooted: minutesUnlooted
+                })
+            });
+            getJSON('https://athena.wynntils.com/cache/get/serverList',
+                function (err, data) {
+                    if (err !== null) {
+                        alert('Something went wrong: ' + err);
+                    } else {
+                        for (let x in data.servers) {
+                            if (x.includes("YT")) {
+                                continue
+                            }
+                            // console.log(x+ " : " + new Date(Date.now()-data.servers[x].firstSeen).toISOString().slice(11, 19));
+                            jsonWorlds.push({
+                                world: parseInt(x.replace("WC", ""), 10),
+                                uptimeMinutes: parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[0], 10) * 60 + parseInt(new Date(Date.now() - data.servers[x].firstSeen).toISOString().slice(11, 19).split(":")[1], 10)
+                            })
+                        }
+                        jsonWorlds = jsonWorlds.filter(worldFilter)
+                        jsonWorlds.sort(function (l, r) {
+                            return r.sinceLooted - l.sinceLooted;
+                        });
+                        console.log(jsonWorlds)
+                        let output = "Potential worlds: \n"
+                        jsonWorlds.forEach(function (world) {
+                            output += `WC${world.world} (Uptime: ${time_from_minutes(world.uptimeMinutes)}) : time since looted: ${time_from_minutes(world.sinceLooted)}\n`
+                        })
+
+                        document.getElementById("result").innerText = output
+                    }
+                }
+            );
+        }
+
+        async function listUptime() {
+            const uptimeList = []
+
+            try {
+                const res = await fetch('https://athena.wynntils.com/cache/get/serverList')
+                const data = await res.json()
+
+                for (let server in data.servers) {
+                    if (server.includes("YT")) {
+                        continue
+                    }
+
+                    uptimeList.push({
+                        world: parseInt(server.replace("WC", ""), 10),
+                        uptimeMinutes: parseInt(new Date(Date.now() - data.servers[server].firstSeen).toISOString().slice(11, 19).split(":")[0], 10) * 60 + parseInt(new Date(Date.now() - data.servers[server].firstSeen).toISOString().slice(11, 19).split(":")[1], 10)
+                    })
+                }
+
+                uptimeList.sort((a, b) => b.uptimeMinutes - a.uptimeMinutes)
+
+                let output = ''
+                uptimeList.forEach(world => {
+                    const time = time_from_minutes(world.uptimeMinutes)
+                    output += `WC${world.world} Uptime: <span style="color: ${world.uptimeMinutes > 420 || world.uptimeMinutes < 120 ? "red" : "green"}">${time}</span><br>`
+                })
+
+                document.getElementById("result").innerHTML = output
+
+            } catch (err) {
+                alert('Something went wrong: ' + err)
+                console.log(err)
+            }
+
+        }
+    </script>
 </body>
+
+</html>
